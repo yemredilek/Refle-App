@@ -76,9 +76,9 @@ export default function ProfilePage() {
                     <h3 className="text-xs font-semibold text-zinc-400 uppercase ml-2">Hesabım</h3>
                     <Card className="border-zinc-100 shadow-sm overflow-hidden dark:bg-zinc-900 dark:border-zinc-800">
                         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            <MenuItem icon={User} label="Kişisel Bilgiler" />
-                            <MenuItem icon={CreditCard} label="IBAN / Ödeme Yöntemleri" />
-                            <MenuItem icon={Bell} label="Bildirim Ayarları" />
+                            <MenuItem icon={User} label="Kişisel Bilgiler" href="/profile/edit" />
+                            <MenuItem icon={CreditCard} label="IBAN / Ödeme Yöntemleri" href="/profile/payment" />
+                            <MenuItem icon={Bell} label="Bildirim Ayarları" href="/profile/notifications" />
                         </div>
                     </Card>
                 </div>
@@ -88,8 +88,8 @@ export default function ProfilePage() {
                     <h3 className="text-xs font-semibold text-zinc-400 uppercase ml-2">Destek</h3>
                     <Card className="border-zinc-100 shadow-sm overflow-hidden dark:bg-zinc-900 dark:border-zinc-800">
                         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            <MenuItem icon={HelpCircle} label="Yardım Merkezi" />
-                            <MenuItem icon={ShieldCheck} label="Gizlilik ve Güvenlik" />
+                            <MenuItem icon={HelpCircle} label="Yardım Merkezi" href="/help-desk"/>
+                            <MenuItem icon={ShieldCheck} label="Gizlilik ve Güvenlik" href="/privacy"/>
                         </div>
                     </Card>
                 </div>
@@ -109,14 +109,14 @@ export default function ProfilePage() {
 }
 
 // Yardımcı Bileşen: Menü Satırı
-function MenuItem({ icon: Icon, label }: { icon: any, label: string }) {
+function MenuItem({ icon: Icon, label, href }: { icon: any, label: string, href: string }) {
     return (
-        <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50 transition-colors active:bg-zinc-100 dark:hover:bg-zinc-800/50">
+        <Link href={href} className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50 transition-colors active:bg-zinc-100 dark:hover:bg-zinc-800/50">
             <div className="flex items-center gap-3 text-zinc-700 dark:text-zinc-300">
                 <Icon size={18} />
                 <span className="text-sm font-medium">{label}</span>
             </div>
             <ChevronRight size={16} className="text-zinc-300" />
-        </div>
+        </Link>
     )
 }
