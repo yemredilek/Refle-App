@@ -24,7 +24,7 @@ export default function CashierScan() {
                 // ADIM 1: TARAMA EKRANI
                 <div className="flex flex-col items-center gap-8 animate-in fade-in">
                     <div className="relative w-64 h-64 bg-black rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl ring-4 ring-zinc-200 dark:ring-zinc-800">
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/20 to-transparent animate-pulse z-10"></div>
+                        <div className="absolute inset-0 bg-linear-to-b from-transparent via-green-500/20 to-transparent animate-pulse z-10"></div>
                         <ScanLine size={64} className="text-white/50" />
                         <p className="absolute bottom-4 text-white/70 text-xs">QR Kodu çerçeveye hizalayın</p>
                     </div>

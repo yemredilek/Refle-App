@@ -8,6 +8,10 @@ import { cn } from "@/lib/utils";
 export default function BottomNav() {
     const pathname = usePathname();
 
+    if (pathname === "/login" || pathname === "/register") {
+        return null;
+    }
+
     // İşletme Modunda mıyız?
     const isBusinessMode = pathname?.startsWith("/business");
 

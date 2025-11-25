@@ -1,7 +1,16 @@
+"use client"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
+
+    const pathname = usePathname();
+
+    if (pathname === "/login" || pathname === "/register") {
+        return null;
+    }
+
     return (
         <header className="w-full border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
