@@ -6,7 +6,7 @@ import { User, Settings, LogOut, HelpCircle, ChevronRight, ShieldCheck, CreditCa
 export default function ProfilePage() {
     // MOCK DATA: Şimdilik 'false' yaparak Misafir görünümünü test edelim.
     // Backend bağlayınca burası 'session'dan gelecek.
-    const isLoggedIn = false;
+    const isLoggedIn = true;
 
     // --- DURUM 1: GİRİŞ YAPMAMIŞ KULLANICI (MİSAFİR) ---
     if (!isLoggedIn) {

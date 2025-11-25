@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Star } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -36,36 +37,38 @@ export default function Home() {
 
           {/* Örnek Kartlar */}
           {[1, 2, 3, 4, 5, 6].map((item) => (
-            <div key={item} className="group relative overflow-hidden rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all dark:bg-zinc-900 dark:border-zinc-800">
-              {/* Görsel Alanı */}
-              <div className="aspect-video w-full bg-zinc-200 relative">
-                {/* Next/Image buraya gelecek */}
-                <div className="absolute top-3 right-3 bg-white/90 px-2 py-1 rounded-full text-xs font-bold text-green-700 backdrop-blur-sm">
-                  ₺500 Kazan
-                </div>
-              </div>
-
-              {/* İçerik */}
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-lg">Diş Hekimi Dr. Ece</h3>
-                  <div className="flex items-center text-yellow-500 text-xs">
-                    <Star className="fill-current w-3 h-3 mr-1" />
-                    4.9
+            <Link href={`/campaign/${item}`} key={item}>
+              <div key={item} className="group relative overflow-hidden rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all dark:bg-zinc-900 dark:border-zinc-800">
+                {/* Görsel Alanı */}
+                <div className="aspect-video w-full bg-zinc-200 relative">
+                  {/* Next/Image buraya gelecek */}
+                  <div className="absolute top-3 right-3 bg-white/90 px-2 py-1 rounded-full text-xs font-bold text-green-700 backdrop-blur-sm">
+                    ₺500 Kazan
                   </div>
                 </div>
-                <p className="text-sm text-zinc-500 line-clamp-2">
-                  Diş taşı temizliği ve beyazlatma işlemlerinde %20 indirim.
-                </p>
 
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-xs text-zinc-400">Kadıköy, Moda</div>
-                  <Button variant="outline" size="sm" className="rounded-full">
-                    İncele
-                  </Button>
+                {/* İçerik */}
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-lg">Diş Hekimi Dr. Ece</h3>
+                    <div className="flex items-center text-yellow-500 text-xs">
+                      <Star className="fill-current w-3 h-3 mr-1" />
+                      4.9
+                    </div>
+                  </div>
+                  <p className="text-sm text-zinc-500 line-clamp-2">
+                    Diş taşı temizliği ve beyazlatma işlemlerinde %20 indirim.
+                  </p>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-xs text-zinc-400">Kadıköy, Moda</div>
+                    <Button variant="outline" size="sm" className="rounded-full">
+                      İncele
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
 
         </div>
