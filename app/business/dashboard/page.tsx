@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, TrendingUp, CreditCard, Plus, Tag } from "lucide-react";
+import { Users, TrendingUp, CreditCard, Plus, Tag, QrCode } from "lucide-react";
 import { createClient } from "@/utils/supabase/server"; // Server Component
 
 // Veri Çekme Fonksiyonu
 async function getBusinessStats() {
     const supabase = await createClient();
 
-    // 1. Giriş yapan kullanıcının İşletme ID'sini bul
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -20,16 +19,11 @@ async function getBusinessStats() {
 
     if (!business) return null;
 
-    // 2. Kampanyaları Çek
-    const { data: campaigns, error } = await supabase
+    const { data: campaigns } = await supabase
         .from('campaigns')
         .select('*')
         .eq('business_id', business.id)
         .order('created_at', { ascending: false });
-
-    // 3. Toplam Referans Sayısını Çek (Basit bir count query)
-    // Not: Gerçekte 'referrals' tablosunu joinleyip saymak daha doğru ama şimdilik basit tutalım.
-    // Kampanya sayısı üzerinden gidelim.
 
     return {
         businessName: business.name,
@@ -42,17 +36,28 @@ export default async function BusinessDashboard() {
     const stats = await getBusinessStats();
 
     return (
-        <div className="flex flex-col gap-6 pb-20">
+        <div className="flex flex-col gap-6 pb-24">
             <div className="flex items-center justify-between px-2">
                 <div>
                     <h1 className="text-2xl font-bold">{stats?.businessName || "İşletme Paneli"}</h1>
-                    <p className="text-sm text-zinc-500">Genel Bakış</p>
+                    <p className="text-sm text-zinc-500">Hoş geldin, bol kazançlar.</p>
                 </div>
-                <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 rounded-full">
-                    <Link href="/business/create">
-                        <Plus className="w-4 h-4 mr-1" /> Yeni Kampanya
-                    </Link>
-                </Button>
+            </div>
+
+            {/* 0. HIZLI AKSİYONLAR */}
+            <div className="grid grid-cols-2 gap-3 px-2">
+                <Link href="/business/scan" className="w-full">
+                    <div className="bg-blue-600 text-white p-4 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-transform dark:shadow-none">
+                        <QrCode size={28} />
+                        <span className="font-bold text-sm">Kasa / QR</span>
+                    </div>
+                </Link>
+                <Link href="/business/create" className="w-full">
+                    <div className="bg-white border border-zinc-200 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform dark:bg-zinc-900 dark:border-zinc-800">
+                        <Plus size={28} className="text-zinc-900 dark:text-white" />
+                        <span className="font-bold text-sm text-zinc-900 dark:text-white">Kampanya Ekle</span>
+                    </div>
+                </Link>
             </div>
 
             {/* 1. ÖZET KARTLARI */}
@@ -97,32 +102,35 @@ export default async function BusinessDashboard() {
 
             {/* 2. KAMPANYA LİSTESİ (Dynamic Data) */}
             <div className="px-2">
-                <h3 className="font-semibold text-lg mb-3">Kampanyalarım</h3>
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-lg">Kampanyalarım</h3>
+                    <Link href="/business/campaigns" className="text-xs text-blue-600 font-medium">Tümünü Gör</Link>
+                </div>
 
                 {stats?.campaigns.length === 0 ? (
                     <div className="text-center py-8 border-2 border-dashed border-zinc-200 rounded-xl">
-                        <p className="text-zinc-400 text-sm">Henüz kampanya oluşturmadınız.</p>
+                        <p className="text-zinc-400 text-sm">Henüz kampanya yok.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {stats?.campaigns.map((camp) => (
-                            <div key={camp.id} className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-900/10">
-                                <div className="flex justify-between items-start">
+                        {stats?.campaigns.slice(0, 3).map((camp) => (
+                            <Link href={`/business/campaigns/${camp.id}`} key={camp.id}>
+                                <div className="p-4 rounded-xl border border-zinc-100 bg-white shadow-sm flex justify-between items-center active:bg-zinc-50 transition-colors dark:bg-zinc-900 dark:border-zinc-800">
                                     <div>
-                                        <h4 className="font-bold text-blue-900 dark:text-blue-100">{camp.title}</h4>
-                                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                                            Fiyat: ₺{camp.list_price} <span className="mx-1">•</span> Ödül: ₺{camp.referrer_reward}
+                                        <h4 className="font-bold text-sm text-zinc-900 dark:text-blue-100 line-clamp-1">{camp.title}</h4>
+                                        <p className="text-xs text-zinc-500 mt-1">
+                                            {camp.current_uses} Kullanım <span className="mx-1">•</span> ₺{camp.list_price}
                                         </p>
                                     </div>
-                                    <div className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-300">
-                                        {camp.status.toUpperCase()}
+                                    <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${camp.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                                        {camp.status === 'active' ? 'AKTİF' : 'PASİF'}
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}
-            </div>
         </div>
+        </div >
     );
 }

@@ -180,7 +180,7 @@ export default function CashierScan() {
                                     }}
                                 />
                                 {/* Tarama Çerçevesi Efekti */}
-                                <div className="absolute inset-0 border-[30px] border-black/50 pointer-events-none flex items-center justify-center">
+                                <div className="absolute inset-0 border-30 border-black/50 pointer-events-none flex items-center justify-center">
                                     <div className="w-48 h-48 border-2 border-white/50 rounded-lg relative">
                                         <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500"></div>
                                         <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500"></div>

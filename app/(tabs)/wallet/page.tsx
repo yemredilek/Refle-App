@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, History, Wallet, TrendingUp, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowUpRight, History, Wallet, TrendingUp } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { WithdrawDrawer } from "@/components/wallet/withdraw-drawer";
+import Link from "next/link";
 
 async function getWalletData() {
     const supabase = await createClient();
@@ -47,13 +49,17 @@ export default async function WalletPage() {
                     </div>
 
                     <div className="flex gap-3">
-                        <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 border-0 font-semibold rounded-full">
-                            <ArrowUpRight size={16} className="mr-1" />
-                            Para Çek
-                        </Button>
-                        <Button size="sm" variant="outline" className="bg-blue-600/20 text-white border-white/20 hover:bg-blue-600/30 rounded-full backdrop-blur-md">
-                            <History size={16} className="mr-1" />
-                            Geçmiş
+                        <WithdrawDrawer balance={balance}>
+                            <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 border-0 font-semibold rounded-full">
+                                <ArrowUpRight size={16} className="mr-1" />
+                                Para Çek
+                            </Button>
+                        </WithdrawDrawer>
+                        <Button size="sm" variant="outline" asChild className="bg-blue-600/20 text-white border-white/20 hover:bg-blue-600/30 rounded-full backdrop-blur-md">
+                            <Link href="/wallet/history">
+                                <History size={16} className="mr-1" />
+                                Geçmiş
+                            </Link>
                         </Button>
                     </div>
                 </div>
