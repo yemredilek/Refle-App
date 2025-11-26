@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Wallet, ScanQrCode, User, LayoutDashboard, PlusCircle, QrCode } from "lucide-react";
+import { Home, Wallet, ScanQrCode, User, LayoutDashboard, PlusCircle, QrCode, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
@@ -30,8 +30,8 @@ export default function BottomNav() {
     // İŞLETME MENÜSÜ
     const businessNavItems = [
         { name: "Panel", href: "/business/dashboard", icon: LayoutDashboard },
-        { name: "Oluştur", href: "/business/create", icon: PlusCircle },
-        { name: "Kasa", href: "/business/scan", icon: QrCode, isPrimary: true }, // Kasiyer butonu
+        { name: "Kampanyalar", href: "/business/campaigns", icon: Megaphone },
+        { name: "Kasa", href: "/business/scan", icon: QrCode, isPrimary: true },
         { name: "Profil", href: "/business/profile", icon: User },
     ];
 

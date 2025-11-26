@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { User, Building2, LayoutDashboard, Wallet, LogOut, Settings } from "lucide-react";
+import { User, LayoutDashboard, Wallet, LogOut, Settings, QrCode, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Navbar() {
@@ -15,13 +15,11 @@ export default function Navbar() {
     const [role, setRole] = useState<string | null>(null);
     const supabase = createClient();
 
-    // Sayfa her yüklendiğinde kullanıcıyı kontrol et
     useEffect(() => {
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setUser(user);
-                // Rolü metadata'dan alıyoruz (Login/Register'da kaydetmiştik)
                 setRole(user.user_metadata?.role || "user");
             } else {
                 setUser(null);
@@ -29,7 +27,7 @@ export default function Navbar() {
             }
         };
         getUser();
-    }, [pathname]); // Sayfa değiştikçe kontrol et
+    }, [pathname]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -55,11 +53,13 @@ export default function Navbar() {
                     </Link>
                 </div>
 
-                {/* ORTA MENÜ (Sadece Giriş Yapılmadıysa veya Bireyselse) */}
-                <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    <Link href="/" className="hover:text-blue-600 transition-colors">Kampanyalar</Link>
-                    <Link href="/business" className="hover:text-blue-600 transition-colors">İşletmeler İçin</Link>
-                </nav>
+                {/* ORTA MENÜ: Sadece MİSAFİR kullanıcılar görsün */}
+                {!user && (
+                    <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        <Link href="/" className="hover:text-blue-600 transition-colors">Kampanyalar</Link>
+                        <Link href="/business" className="hover:text-blue-600 transition-colors">İşletmeler İçin</Link>
+                    </nav>
+                )}
 
                 {/* SAĞ TARAF (Duruma Göre Değişir) */}
                 <div className="flex items-center gap-4">
@@ -76,34 +76,56 @@ export default function Navbar() {
                         </>
                     ) : role === 'business' ? (
                         // --- İŞLETME MODU ---
-                        <div className="flex items-center gap-3">
-                            <Button variant="ghost" asChild className="text-zinc-600">
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" asChild className="text-zinc-600 dark:text-zinc-300">
                                 <Link href="/business/dashboard">
                                     <LayoutDashboard size={18} className="mr-2" /> Panel
                                 </Link>
                             </Button>
-                            {/* YENİ BUTON: AYARLAR */}
-                            <Button variant="ghost" asChild className="text-zinc-600">
+
+                            <Button variant="ghost" asChild className="text-zinc-600 dark:text-zinc-300">
+                                <Link href="/business/campaigns">
+                                    <Megaphone size={18} className="mr-2" /> Kampanyalar {/* Megaphone ikonunu import et */}
+                                </Link>
+                            </Button>
+
+                            {/* YENİ: KASA BUTONU */}
+                            <Button variant="ghost" asChild className="text-zinc-600 dark:text-zinc-300">
+                                <Link href="/business/scan">
+                                    <QrCode size={18} className="mr-2" /> Kasa
+                                </Link>
+                            </Button>
+
+                            <Button variant="ghost" asChild className="text-zinc-600 dark:text-zinc-300">
                                 <Link href="/business/profile">
                                     <Settings size={18} className="mr-2" /> Ayarlar
                                 </Link>
                             </Button>
-                            <Button variant="outline" onClick={handleLogout}>
+
+                            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
+
+                            <Button variant="ghost" onClick={handleLogout} className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
                                 <LogOut size={18} className="mr-2" /> Çıkış
                             </Button>
                         </div>
                     ) : (
                         // --- KULLANICI MODU ---
-                        <div className="flex items-center gap-3">
-                            <Button variant="ghost" asChild className="text-zinc-600">
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" asChild className="text-zinc-600 dark:text-zinc-300">
                                 <Link href="/wallet">
                                     <Wallet size={18} className="mr-2" /> Cüzdan
                                 </Link>
                             </Button>
-                            <Button variant="ghost" asChild className="text-zinc-600">
+                            <Button variant="ghost" asChild className="text-zinc-600 dark:text-zinc-300">
                                 <Link href="/profile">
                                     <User size={18} className="mr-2" /> Hesabım
                                 </Link>
+                            </Button>
+
+                            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
+
+                            <Button variant="ghost" onClick={handleLogout} className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
+                                <LogOut size={18} className="mr-2" /> Çıkış
                             </Button>
                         </div>
                     )}

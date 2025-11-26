@@ -4,34 +4,39 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Sparkles, AlertCircle, Banknote, Percent } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowRight, Sparkles, AlertCircle, Banknote, Percent, Calendar, Users, ShoppingBag } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export default function CreateCampaign() {
     const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
     const [price, setPrice] = useState<string>("");
 
     // Bütçe Yönetimi
     const [budgetMode, setBudgetMode] = useState<"fixed" | "percentage">("fixed");
-    const [budgetInput, setBudgetInput] = useState<string>(""); // Kullanıcının yazdığı (200 veya 20)
-    const [calculatedBudget, setCalculatedBudget] = useState<number>(0); // Sisteme gidecek net TL (200)
+    const [budgetInput, setBudgetInput] = useState<string>("");
+    const [calculatedBudget, setCalculatedBudget] = useState<number>(0);
+
+    // Kısıtlamalar
+    const [minSpend, setMinSpend] = useState<string>(""); // Min sepet
+    const [maxUses, setMaxUses] = useState<string>(""); // Kişi limiti
+    const [expiryDate, setExpiryDate] = useState<string>(""); // Bitiş tarihi
 
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
 
-    // Sayıları parse et
     const priceNum = parseFloat(price) || 0;
     const budgetInputNum = parseFloat(budgetInput) || 0;
 
-    // Bütçeyi Hesapla (Her input değiştiğinde çalışır)
+    // Bütçe Hesaplama
     useEffect(() => {
         if (budgetMode === "fixed") {
             setCalculatedBudget(budgetInputNum);
         } else {
-            // Yüzde Modu: Fiyatın %X'i
             if (priceNum > 0) {
                 setCalculatedBudget((priceNum * budgetInputNum) / 100);
             } else {
@@ -40,30 +45,31 @@ export default function CreateCampaign() {
         }
     }, [budgetMode, budgetInput, priceNum]);
 
-    // Refle Dağıtımı
     const platformFee = calculatedBudget * 0.20;
     const customerDiscount = calculatedBudget * 0.40;
     const referrerReward = calculatedBudget * 0.40;
     const finalPrice = priceNum - customerDiscount;
 
-    // Validasyon Kontrolü
     const isValid = priceNum > 0 && calculatedBudget > 0 && calculatedBudget < priceNum;
     const errorMessage = calculatedBudget >= priceNum ? "Bütçe fiyattan yüksek olamaz!" : null;
 
     const handleCreate = async () => {
         if (!isValid || !title) {
-            toast.error("Lütfen tüm alanları doğru şekilde doldurun.");
+            toast.warning("Lütfen zorunlu alanları doldurun.");
             return;
         }
 
         setLoading(true);
 
-        // Backend her zaman NET TL tutarı (calculatedBudget) bekler.
         const { error } = await supabase.rpc('create_campaign', {
             p_title: title,
-            p_description: "Standart Kampanya",
+            p_description: description,
             p_list_price: priceNum,
-            p_budget: calculatedBudget // Hesaplanan TL değeri gider
+            p_budget: calculatedBudget,
+            // Yeni Parametreler
+            p_min_spend: parseFloat(minSpend) || 0,
+            p_max_uses: maxUses ? parseInt(maxUses) : null,
+            p_expires_at: expiryDate ? new Date(expiryDate).toISOString() : null
         });
 
         if (error) {
@@ -80,122 +86,102 @@ export default function CreateCampaign() {
         <div className="flex flex-col h-full px-4 py-6 space-y-6 pb-24 bg-zinc-50 dark:bg-black min-h-screen">
             <div className="space-y-1">
                 <h1 className="text-2xl font-bold">Yeni Kampanya</h1>
-                <p className="text-zinc-500 text-sm">Bütçenizi belirleyin, gerisini algoritmaya bırakın.</p>
+                <p className="text-zinc-500 text-sm">Kampanya detaylarını ve limitlerini belirleyin.</p>
             </div>
 
             <div className="space-y-5">
-                {/* BAŞLIK */}
+                {/* TEMEL BİLGİLER */}
+                <div className="bg-white p-4 rounded-xl border border-zinc-100 space-y-4 dark:bg-zinc-900 dark:border-zinc-800">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Kampanya Başlığı</label>
+                        <Input placeholder="Örn: Diş Taşı Temizliği" value={title} onChange={(e) => setTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Liste Fiyatı (₺)</label>
+                        <Input type="number" placeholder="1000" value={price} onChange={(e) => setPrice(e.target.value)} />
+                    </div>
+                </div>
+
+                {/* AÇIKLAMA ALANI */}
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Kampanya Başlığı</label>
-                    <Input
-                        placeholder="Örn: Diş Taşı Temizliği"
-                        className="h-12 bg-white dark:bg-zinc-900"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Açıklama (İsteğe bağlı)</label>
+                    <Textarea
+                        placeholder="Kampanya detaylarını yazınız..."
+                        className="min-h-20 resize-none"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
                     />
                 </div>
 
-                {/* FİYAT */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Liste Fiyatı (₺)</label>
-                    <Input
-                        type="number"
-                        placeholder="Örn: 1000"
-                        className="text-lg h-12 bg-white dark:bg-zinc-900"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                    />
-                </div>
-
-                {/* BÜTÇE SEÇİM ALANI */}
-                <div className="space-y-3">
+                {/* BÜTÇE */}
+                <div className="bg-white p-4 rounded-xl border border-zinc-100 space-y-4 dark:bg-zinc-900 dark:border-zinc-800">
                     <div className="flex justify-between items-center">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Toplam Pazarlama Bütçesi</label>
-
-                        {/* TOGGLE SWITCH */}
-                        <div className="flex bg-zinc-200 rounded-lg p-1 dark:bg-zinc-800">
-                            <button
-                                onClick={() => setBudgetMode("fixed")}
-                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${budgetMode === "fixed" ? "bg-white shadow text-black" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"}`}
-                            >
-                                <Banknote size={14} /> TL
-                            </button>
-                            <button
-                                onClick={() => setBudgetMode("percentage")}
-                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${budgetMode === "percentage" ? "bg-white shadow text-black" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"}`}
-                            >
-                                <Percent size={14} />
-                            </button>
+                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Pazarlama Bütçesi</label>
+                        <div className="flex bg-zinc-100 rounded-lg p-1 dark:bg-zinc-800">
+                            <button onClick={() => setBudgetMode("fixed")} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${budgetMode === "fixed" ? "bg-white shadow text-black" : "text-zinc-500"}`}>TL</button>
+                            <button onClick={() => setBudgetMode("percentage")} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${budgetMode === "percentage" ? "bg-white shadow text-black" : "text-zinc-500"}`}>%</button>
                         </div>
                     </div>
-
                     <div className="relative">
-                        <Input
-                            type="number"
-                            placeholder={budgetMode === "fixed" ? "Örn: 200" : "Örn: 20"}
-                            className={`text-lg h-12 border-2 bg-white dark:bg-zinc-900 ${errorMessage ? "border-red-300 focus-visible:ring-red-500" : "border-blue-100 focus-visible:ring-blue-500 dark:border-blue-900/50"}`}
-                            value={budgetInput}
-                            onChange={(e) => setBudgetInput(e.target.value)}
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">
-                            {budgetMode === "fixed" ? "₺" : "%"}
-                        </div>
+                        <Input type="number" placeholder={budgetMode === "fixed" ? "200" : "20"} className={errorMessage ? "border-red-300" : "border-blue-200"} value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">{budgetMode === "fixed" ? "₺" : "%"}</div>
                     </div>
+                    {errorMessage && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} /> {errorMessage}</p>}
+                </div>
 
-                    {/* Bilgilendirme veya Hata */}
-                    {errorMessage ? (
-                        <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} /> {errorMessage}</p>
-                    ) : (
-                        <p className="text-xs text-zinc-500">
-                            {budgetMode === "percentage"
-                                ? `Satış fiyatının %${budgetInputNum || 0}'si bütçe olarak ayrılacak.`
-                                : "Bu tutar, her başarılı satışta cirodan düşülecektir."
-                            }
-                        </p>
-                    )}
+                {/* GELİŞMİŞ AYARLAR (LİMİTLER) */}
+                <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-zinc-400 uppercase ml-1">Kısıtlamalar (Opsiyonel)</h3>
+                    <div className="bg-white p-4 rounded-xl border border-zinc-100 space-y-4 dark:bg-zinc-900 dark:border-zinc-800">
+
+                        {/* Min Sepet */}
+                        <div className="grid grid-cols-[auto_1fr] gap-4 items-center">
+                            <ShoppingBag size={20} className="text-zinc-400" />
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Min. Harcama (₺)</label>
+                                <Input type="number" placeholder="0 (Yok)" className="h-9 text-sm" value={minSpend} onChange={(e) => setMinSpend(e.target.value)} />
+                            </div>
+                        </div>
+
+                        {/* Kişi Limiti */}
+                        <div className="grid grid-cols-[auto_1fr] gap-4 items-center">
+                            <Users size={20} className="text-zinc-400" />
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Kişi Limiti</label>
+                                <Input type="number" placeholder="Sınırsız" className="h-9 text-sm" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} />
+                            </div>
+                        </div>
+
+                        {/* Tarih Limiti */}
+                        <div className="grid grid-cols-[auto_1fr] gap-4 items-center">
+                            <Calendar size={20} className="text-zinc-400" />
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Son Geçerlilik Tarihi</label>
+                                <Input type="date" className="h-9 text-sm" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
 
-            {/* CANLI ÖNİZLEME KARTI */}
+            {/* ÖNİZLEME KARTI */}
             {isValid && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Card className="bg-white border-zinc-200 overflow-hidden shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
-                        <div className="bg-zinc-50 p-2 text-[10px] font-bold text-zinc-400 text-center uppercase tracking-wider border-b border-zinc-100 dark:bg-zinc-800 dark:border-zinc-700">
-                            Dağıtım Algoritması
-                        </div>
-                        <div className="p-4 space-y-4">
-
-                            {/* Müşteri Satırı */}
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Müşteri İndirimi</div>
-                                    <div className="text-[10px] text-zinc-400">%40 Pay</div>
-                                </div>
-                                <div className="font-bold text-green-600 text-lg">-₺{customerDiscount.toFixed(0)}</div>
+                    <Card className="bg-zinc-50 border-zinc-200 overflow-hidden dark:bg-zinc-900 dark:border-zinc-800">
+                        <div className="p-4 space-y-3">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Müşteri İndirimi</span>
+                                <span className="font-bold text-green-600">-₺{customerDiscount.toFixed(0)}</span>
                             </div>
-
-                            {/* Referans Satırı */}
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Referansçı Ödülü</div>
-                                    <div className="text-[10px] text-zinc-400">%40 Pay</div>
-                                </div>
-                                <div className="font-bold text-blue-600 text-lg">+₺{referrerReward.toFixed(0)}</div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Referans Ödülü</span>
+                                <span className="font-bold text-blue-600">+₺{referrerReward.toFixed(0)}</span>
                             </div>
-
-                            <div className="border-t border-dashed border-zinc-200 my-2 dark:border-zinc-700"></div>
-
-                            {/* Net Kasa Satırı */}
-                            <div className="flex justify-between items-center">
-                                <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Kasanıza Giren (Net)</div>
-                                <div className="font-black text-zinc-900 text-2xl dark:text-white">₺{finalPrice.toFixed(0)}</div>
+                            <div className="border-t border-dashed border-zinc-200 pt-2 flex justify-between items-center">
+                                <span className="font-bold text-zinc-900 dark:text-white">Kasa Tahsilatı</span>
+                                <span className="font-black text-xl text-zinc-900 dark:text-white">₺{finalPrice.toFixed(0)}</span>
                             </div>
-
-                            {budgetMode === "percentage" && (
-                                <div className="text-center text-xs text-zinc-400 mt-2 bg-zinc-50 py-1 rounded dark:bg-zinc-800">
-                                    Toplam Bütçe: ₺{calculatedBudget.toFixed(0)}
-                                </div>
-                            )}
                         </div>
                     </Card>
                 </div>
@@ -203,12 +189,7 @@ export default function CreateCampaign() {
 
             <div className="flex-1"></div>
 
-            <Button
-                onClick={handleCreate}
-                disabled={loading || !isValid}
-                size="lg"
-                className="w-full rounded-full bg-zinc-900 hover:bg-zinc-800 text-white text-lg font-bold dark:bg-zinc-50 dark:text-zinc-900"
-            >
+            <Button onClick={handleCreate} disabled={loading || !isValid} size="lg" className="w-full rounded-full bg-zinc-900 hover:bg-zinc-800 text-white text-lg font-bold dark:bg-zinc-50 dark:text-zinc-900">
                 {loading ? "Oluşturuluyor..." : "Kampanyayı Başlat"} <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
         </div>

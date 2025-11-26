@@ -15,6 +15,7 @@ import {
 import { Copy, Share2, MessageCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import QRCode from "react-qr-code";
 
 interface ShareDrawerProps {
     children: React.ReactNode;
@@ -48,14 +49,13 @@ export function ShareDrawer({ children, campaignId, campaignTitle, reward }: Sha
 
         if (error) {
             console.error(error);
-            toast.error("Kod oluşturulamadı. Giriş yaptınız mı?");
+            toast.error("Kod oluşturulamadı: " + error.message);
             setLoading(false);
-            setIsOpen(false); // Hata varsa kapat
+            setIsOpen(false);
             return;
         }
 
-        // Başarılı
-        setCode(data.code); // "K9X2M4" gibi
+        setCode(data.code);
         setLoading(false);
     };
 
@@ -84,45 +84,42 @@ export function ShareDrawer({ children, campaignId, campaignTitle, reward }: Sha
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
                         <DrawerTitle className="text-center text-2xl">
-                            {loading ? "Kod Oluşturuluyor..." : "Kodun Hazır! 🎉"}
+                            {loading ? "Kod Oluşturuluyor..." : "Kasa İçin QR Kod"}
                         </DrawerTitle>
                         <DrawerDescription className="text-center">
-                            Arkadaşın bu kodu kullanırsa, sen <span className="font-bold text-blue-600">{reward}</span> kazanacaksın.
+                            Bu kodu kasadaki görevliye göster.
                         </DrawerDescription>
                     </DrawerHeader>
 
-                    <div className="p-4 pb-0 space-y-4">
+                    <div className="p-4 pb-0 space-y-6 flex flex-col items-center">
+
+                        {/* QR KOD ALANI */}
+                        <div className="bg-white p-4 rounded-xl border-4 border-zinc-900 shadow-xl">
+                            {loading ? (
+                                <div className="h-48 w-48 flex items-center justify-center text-zinc-400">
+                                    <Loader2 className="animate-spin" size={48} />
+                                </div>
+                            ) : code ? (
+                                <QRCode value={code} size={180} />
+                            ) : null}
+                        </div>
 
                         {/* KOD KARTI */}
-                        <div className="flex items-center justify-between p-4 bg-zinc-100 rounded-xl border border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-20">
-                            {loading ? (
-                                <div className="w-full flex justify-center items-center text-zinc-400">
-                                    <Loader2 className="animate-spin mr-2" /> Lütfen bekleyin...
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="flex flex-col">
-                                        <span className="text-xs text-zinc-500 uppercase font-medium">Referans Kodu</span>
-                                        <span className="text-2xl font-mono font-bold tracking-widest text-zinc-900 dark:text-zinc-100">
-                                            {code}
-                                        </span>
-                                    </div>
-                                    <Button size="icon" variant="ghost" onClick={handleCopy}>
-                                        {isCopied ? <CheckCircle2 className="text-green-600" /> : <Copy className="text-zinc-500" />}
-                                    </Button>
-                                </>
-                            )}
-                        </div>
+                        {code && (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 rounded-lg border border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700">
+                                <span className="text-2xl font-mono font-bold tracking-[0.2em] text-zinc-900 dark:text-zinc-100">
+                                    {code}
+                                </span>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCopy}>
+                                    {isCopied ? <CheckCircle2 size={16} className="text-green-600" /> : <Copy size={16} className="text-zinc-500" />}
+                                </Button>
+                            </div>
+                        )}
 
-                        {/* PAYLAŞIM BUTONLARI */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <Button onClick={handleWhatsApp} disabled={loading} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white">
-                                <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
-                            </Button>
-                            <Button variant="outline" disabled={loading} className="w-full" onClick={handleCopy}>
-                                <Share2 className="mr-2 h-4 w-4" /> Kopyala
-                            </Button>
-                        </div>
+                        {/* PAYLAŞIM BUTONU */}
+                        <Button onClick={handleWhatsApp} disabled={loading} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white">
+                            <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp ile Link Gönder
+                        </Button>
 
                     </div>
 
