@@ -8,7 +8,11 @@ import { cn } from "@/lib/utils";
 export default function BottomNav() {
     const pathname = usePathname();
 
-    if (pathname === "/login" || pathname === "/register") {
+    if (
+        pathname === "/login" ||
+        pathname === "/register" ||
+        pathname?.startsWith("/campaign/")
+    ) {
         return null;
     }
 

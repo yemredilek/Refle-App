@@ -1,15 +1,87 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { User, Settings, LogOut, HelpCircle, ChevronRight, ShieldCheck, CreditCard, Bell } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { User, Settings, LogOut, HelpCircle, ChevronRight, ShieldCheck, CreditCard, Bell, Loader2 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+// Profil tablosundan gelecek veri tipi
+interface ProfileData {
+    full_name: string | null;
+    email?: string; // Auth'dan gelecek
+}
 
 export default function ProfilePage() {
-    // MOCK DATA: Şimdilik 'false' yaparak Misafir görünümünü test edelim.
-    // Backend bağlayınca burası 'session'dan gelecek.
-    const isLoggedIn = true;
+    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const router = useRouter();
+    const supabase = createClient();
+
+    useEffect(() => {
+        async function getUserData() {
+            try {
+                // 1. Oturum bilgisini al
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+                if (authError || !user) {
+                    setLoading(false);
+                    return;
+                }
+
+                setUser(user);
+
+                // 2. Profil detaylarını (Ad Soyad) çek
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileData) {
+                    setProfile({
+                        full_name: profileData.full_name,
+                        email: user.email || user.phone // E-posta yoksa telefon göster
+                    });
+                }
+
+            } catch (error) {
+                console.error("Profil yüklenirken hata:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        getUserData();
+    }, []);
+
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            toast.error("Çıkış yapılamadı.");
+        } else {
+            toast.success("Çıkış yapıldı.");
+            router.refresh();
+            router.push("/login"); // Login sayfasına yönlendir
+        }
+    };
+
+    // Yükleniyor Ekranı
+    if (loading) {
+        return (
+            <div className="flex h-[80vh] items-center justify-center">
+                <Loader2 className="animate-spin text-zinc-400" size={32} />
+            </div>
+        );
+    }
 
     // --- DURUM 1: GİRİŞ YAPMAMIŞ KULLANICI (MİSAFİR) ---
-    if (!isLoggedIn) {
+    if (!user) {
         return (
             <div className="flex flex-col items-center justify-center h-[80vh] px-6 text-center animate-in fade-in duration-500">
 
@@ -54,17 +126,23 @@ export default function ProfilePage() {
     }
 
     // --- DURUM 2: GİRİŞ YAPMIŞ KULLANICI (PROFİL) ---
+
+    // İsmin baş harflerini al (Avatar için)
+    const initials = profile?.full_name
+        ? profile.full_name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+        : "UR";
+
     return (
-        <div className="flex flex-col gap-6 pb-20">
+        <div className="flex flex-col gap-6 pb-20 animate-in fade-in duration-500">
 
             {/* Üst Kısım: Profil Özeti */}
             <div className="flex items-center gap-4 px-2 py-4">
                 <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl font-bold border-2 border-white shadow-sm dark:bg-blue-900 dark:text-blue-200 dark:border-zinc-800">
-                    OA
+                    {initials}
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold">Oğuzhan A.</h2>
-                    <p className="text-sm text-zinc-500">oguzhan@example.com</p>
+                    <h2 className="text-xl font-bold">{profile?.full_name || "Kullanıcı"}</h2>
+                    <p className="text-sm text-zinc-500">{profile?.email}</p>
                 </div>
             </div>
 
@@ -88,14 +166,18 @@ export default function ProfilePage() {
                     <h3 className="text-xs font-semibold text-zinc-400 uppercase ml-2">Destek</h3>
                     <Card className="border-zinc-100 shadow-sm overflow-hidden dark:bg-zinc-900 dark:border-zinc-800">
                         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            <MenuItem icon={HelpCircle} label="Yardım Merkezi" href="/help-desk"/>
-                            <MenuItem icon={ShieldCheck} label="Gizlilik ve Güvenlik" href="/privacy"/>
+                            <MenuItem icon={HelpCircle} label="Yardım Merkezi" href="/help-desk" />
+                            <MenuItem icon={ShieldCheck} label="Gizlilik ve Güvenlik" href="/privacy" />
                         </div>
                     </Card>
                 </div>
 
                 {/* Çıkış Butonu */}
-                <Button variant="ghost" className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                <Button
+                    variant="ghost"
+                    onClick={handleLogout}
+                    className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
                     <LogOut className="w-4 h-4 mr-2" /> Çıkış Yap
                 </Button>
 

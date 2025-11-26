@@ -15,8 +15,8 @@ import { ArrowLeft, CheckCircle2, AlertCircle, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { z } from "zod";
-import { TURKEY_LOCATIONS } from "@/constants/locations";
 import { toast } from "sonner";
+import { TURKEY_LOCATIONS } from "@/constants/locations"; // Lokasyon verisi
 
 // --- VALIDASYON ŞEMALARI ---
 const userSchema = z.object({
@@ -29,7 +29,7 @@ const businessSchema = z.object({
     companyName: z.string().min(2, "Şirket ismi zorunludur."),
     phone: z.string().regex(/^[0-9]{10}$/, "Cep telefonu başında 0 olmadan 10 hane olmalıdır."),
     email: z.string().email("Geçerli bir e-posta adresi giriniz."),
-    companyType: z.string().min(1, "Şirket türü seçiniz."), // Enum yerine string validasyonu yeterli select için
+    companyType: z.string().min(1, "Şirket türü seçiniz."),
     taxId: z.string().regex(/^[0-9]{10}$/, "Vergi Kimlik Numarası 10 haneli olmalıdır."),
     city: z.string().min(2, "İl seçiniz."),
     district: z.string().min(2, "İlçe seçiniz."),
@@ -65,17 +65,16 @@ export default function RegisterPage() {
     const router = useRouter();
     const supabase = createClient();
 
-    // Normal Input Değişimi
+    // Input Değişimi
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
     };
 
-    // Select (Dropdown) Değişimi - Özel Handler
+    // Select Değişimi
     const handleSelectChange = (name: string, value: string) => {
         setFormData((prev) => {
-            // Eğer şehir değişirse ilçeyi sıfırla
             if (name === "city") {
                 return { ...prev, [name]: value, district: "" };
             }
@@ -84,15 +83,18 @@ export default function RegisterPage() {
         if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
     };
 
+    // Checkbox Değişimi
     const handleCheckboxChange = (checked: boolean) => {
         setFormData(prev => ({ ...prev, consent: checked }));
         if (errors.consent) setErrors(prev => { const n = { ...prev }; delete n.consent; return n; });
     }
 
+    // KAYIT İŞLEMİ
     const handleRegister = async () => {
         setLoading(true);
         setErrors({});
 
+        // 1. Validasyon (Aynı kalacak)
         let result;
         if (role === "user") {
             result = userSchema.safeParse({
@@ -126,34 +128,67 @@ export default function RegisterPage() {
             return;
         }
 
+        const formattedPhone = `+90${formData.phone}`;
+
+        // --- YENİ EKLENEN KISIM: Kayıt Kontrolü ---
+        // Supabase'e sormadan önce kendi veritabanımıza soruyoruz.
+        const { data: userExists, error: checkError } = await supabase.rpc('check_user_exists', {
+            p_phone: formattedPhone
+        });
+
+        if (checkError) {
+            toast.error("Sistem kontrolü yapılamadı. Lütfen tekrar deneyin.");
+            setLoading(false);
+            return;
+        }
+
+        if (userExists) {
+            toast.warning("Bu numara zaten kayıtlı! Giriş yap sayfasına yönlendiriliyorsunuz.");
+            setTimeout(() => router.push("/login"), 2000);
+            setLoading(false);
+            return; // İşlemi burada kesiyoruz
+        }
+        // -------------------------------------------
+
+        // 2. Veri Temizliği ve Metadata (Aynı kalacak)
+        const metadata = role === 'user' ? {
+            role: 'user',
+            full_name: formData.fullName,
+            phone: formData.phone,
+        } : {
+            role: 'business',
+            company_name: formData.companyName,
+            email: formData.email,
+            phone: formData.phone,
+            company_type: formData.companyType,
+            tax_id: formData.taxId,
+            city: formData.city,
+            district: formData.district,
+            referral_code: formData.referralCode,
+        };
+
+        // 3. Supabase Kayıt (Aynı kalacak)
         const { error } = await supabase.auth.signUp({
-            phone: `+90${formData.phone}`,
+            phone: formattedPhone,
             password: formData.password,
             options: {
-                data: {
-                    role: role,
-                    full_name: formData.fullName,
-                    company_name: formData.companyName,
-                    email: formData.email,
-                    company_type: formData.companyType,
-                    tax_id: formData.taxId,
-                    city: formData.city,
-                    district: formData.district,
-                    referral_code: formData.referralCode,
-                },
+                data: metadata,
             },
         });
 
         if (error) {
+            // Buradaki check artık "fallback" (yedek) olarak kalabilir
             toast.error("Kayıt Hatası: " + error.message);
             setLoading(false);
             return;
         }
 
+        toast.success("Doğrulama kodu gönderildi!");
         setLoading(false);
         setView("verify");
     };
 
+    // SMS DOĞRULAMA
     const handleVerifyOtp = async () => {
         setLoading(true);
         const { error } = await supabase.auth.verifyOtp({
@@ -163,11 +198,14 @@ export default function RegisterPage() {
         });
 
         if (error) {
-            toast.error("Doğrulama Hatası: " + error.message);
+            toast.error("Kod Hatalı: " + error.message);
             setLoading(false);
             return;
         }
 
+        toast.success("Hesap doğrulandı! Yönlendiriliyorsunuz...");
+
+        // Yönlendirme
         if (role === "business") {
             router.push("/business/dashboard");
         } else {
@@ -216,9 +254,7 @@ export default function RegisterPage() {
                     <h1 className="text-2xl font-bold mb-1">
                         {role === "user" ? "Bireysel Kayıt" : "İşletme Kaydı"}
                     </h1>
-                    <p className="text-zinc-500 text-sm mb-6">
-                        Lütfen bilgilerinizi doldurun ve kaydınızı tamamlayın.
-                    </p>
+                    <p className="text-zinc-500 text-sm mb-6">Bilgilerinizi eksiksiz giriniz.</p>
 
                     <div className="space-y-4">
 
@@ -235,15 +271,12 @@ export default function RegisterPage() {
                                     <Input name="companyName" placeholder="Şirket İsmi" className={`h-12 ${errors.companyName ? "border-red-500" : "border-orange-200 focus-visible:ring-orange-500"}`} value={formData.companyName} onChange={handleInputChange} />
                                     {errors.companyName && <p className="text-xs text-red-500">{errors.companyName}</p>}
                                 </div>
-
                                 <div className="space-y-1">
                                     <Input name="email" type="email" placeholder="E-posta Adresiniz" className={`h-12 ${errors.email ? "border-red-500" : ""}`} value={formData.email} onChange={handleInputChange} />
                                     {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
                                 </div>
-
-                                {/* ŞİRKET TÜRÜ */}
                                 <div className="space-y-1">
-                                    <Select onValueChange={(val) => handleSelectChange("companyType", val)}>
+                                    <Select onValueChange={(val) => { setFormData(prev => ({ ...prev, companyType: val })); if (errors.companyType) setErrors(prev => { const n = { ...prev }; delete n.companyType; return n; }) }}>
                                         <SelectTrigger className={`w-full h-12 ${errors.companyType ? "border-red-500" : ""}`}>
                                             <SelectValue placeholder="Şirket Türü Seçiniz" />
                                         </SelectTrigger>
@@ -256,13 +289,10 @@ export default function RegisterPage() {
                                     </Select>
                                     {errors.companyType && <p className="text-xs text-red-500">{errors.companyType}</p>}
                                 </div>
-
                                 <div className="space-y-1">
                                     <Input name="taxId" placeholder="Vergi Kimlik No (10 hane)" maxLength={10} className={`h-12 ${errors.taxId ? "border-red-500" : ""}`} value={formData.taxId} onChange={handleInputChange} />
                                     {errors.taxId && <p className="text-xs text-red-500">{errors.taxId}</p>}
                                 </div>
-
-                                {/* İL VE İLÇE */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <Select onValueChange={(val) => handleSelectChange("city", val)}>
@@ -277,13 +307,8 @@ export default function RegisterPage() {
                                         </Select>
                                         {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
                                     </div>
-
                                     <div className="space-y-1">
-                                        <Select
-                                            disabled={!formData.city}
-                                            onValueChange={(val) => handleSelectChange("district", val)}
-                                            value={formData.district} // Şehir değişince sıfırlansın diye value bağlıyoruz
-                                        >
+                                        <Select disabled={!formData.city} onValueChange={(val) => handleSelectChange("district", val)} value={formData.district}>
                                             <SelectTrigger className={`w-full h-12 ${errors.district ? "border-red-500" : ""}`}>
                                                 <SelectValue placeholder="İlçe" />
                                             </SelectTrigger>
@@ -296,7 +321,6 @@ export default function RegisterPage() {
                                         {errors.district && <p className="text-xs text-red-500">{errors.district}</p>}
                                     </div>
                                 </div>
-
                                 <div className="space-y-1">
                                     <Input name="referralCode" placeholder="Referans Kodu (Opsiyonel)" className="h-12" value={formData.referralCode} onChange={handleInputChange} />
                                 </div>
@@ -339,7 +363,7 @@ export default function RegisterPage() {
                         <KeyRound size={32} />
                     </div>
                     <h1 className="text-2xl font-bold mb-2">Doğrulama Kodu</h1>
-                    <p className="text-zinc-500 text-sm mb-8"><span className="font-bold text-zinc-900 dark:text-white">{formData.phone}</span> numarasına gönderilen kodu giriniz.</p>
+                    <p className="text-zinc-500 text-sm mb-8"><span className="font-bold text-zinc-900 dark:text-white">+90 {formData.phone}</span> numarasına gönderilen kodu giriniz.</p>
                     <div className="space-y-4">
                         <Input className="h-14 text-center text-2xl tracking-[0.5em] font-bold" placeholder="000000" maxLength={6} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} />
                         <Button onClick={handleVerifyOtp} disabled={loading} className="w-full h-12 font-bold bg-green-600 hover:bg-green-700 text-white">{loading ? "Doğrulanıyor..." : "Doğrula ve Başla"}</Button>
