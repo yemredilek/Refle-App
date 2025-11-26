@@ -1,10 +1,19 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, TrendingUp, CreditCard, Plus, Tag, QrCode } from "lucide-react";
-import { createClient } from "@/utils/supabase/server"; // Server Component
+import { Users,  CreditCard, Plus, Tag, QrCode } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
 
-// Veri Çekme Fonksiyonu
+// Tip Tanımları (TypeScript Hatası Almamak İçin)
+interface Campaign {
+    id: string;
+    title: string;
+    list_price: number;
+    current_uses: number;
+    status: string;
+    created_at: string;
+    referrer_reward: number; // Eklendi
+}
+
 async function getBusinessStats() {
     const supabase = await createClient();
 
@@ -19,6 +28,10 @@ async function getBusinessStats() {
 
     if (!business) return null;
 
+    // İstatistikleri Al
+    const { data: stats } = await supabase.rpc('get_business_dashboard_stats');
+
+    // Kampanyaları Al
     const { data: campaigns } = await supabase
         .from('campaigns')
         .select('*')
@@ -27,19 +40,20 @@ async function getBusinessStats() {
 
     return {
         businessName: business.name,
-        campaigns: campaigns || [],
-        totalCampaigns: campaigns?.length || 0,
+        campaigns: (campaigns as Campaign[]) || [], // Tip zorlaması
+        stats: stats || { campaigns: 0, referrals: 0, paid: 0 },
     };
 }
 
 export default async function BusinessDashboard() {
-    const stats = await getBusinessStats();
+    const data = await getBusinessStats(); // Ana veriyi 'data' olarak alıyoruz
+    const stats = data?.stats;             // İstatistik sayıları 'stats' içinde
 
     return (
-        <div className="flex flex-col gap-6 pb-24">
+        <div className="flex flex-col gap-6 pb-20">
             <div className="flex items-center justify-between px-2">
                 <div>
-                    <h1 className="text-2xl font-bold">{stats?.businessName || "İşletme Paneli"}</h1>
+                    <h1 className="text-2xl font-bold">{data?.businessName || "İşletme Paneli"}</h1>
                     <p className="text-sm text-zinc-500">Hoş geldin, bol kazançlar.</p>
                 </div>
             </div>
@@ -69,7 +83,7 @@ export default async function BusinessDashboard() {
                         </div>
                         <div>
                             <span className="text-xs opacity-70">Aktif Kampanya</span>
-                            <div className="text-3xl font-bold">{stats?.totalCampaigns}</div>
+                            <div className="text-3xl font-bold">{stats?.campaigns || 0}</div>
                         </div>
                     </CardContent>
                 </Card>
@@ -81,8 +95,8 @@ export default async function BusinessDashboard() {
                                 <Users size={16} />
                             </div>
                             <div>
-                                <div className="text-lg font-bold">-</div>
-                                <div className="text-[10px] text-zinc-500">Referanslar (Yakında)</div>
+                                <div className="text-lg font-bold">{stats?.referrals || 0}</div>
+                                <div className="text-[10px] text-zinc-500">Referanslar</div>
                             </div>
                         </CardContent>
                     </Card>
@@ -92,7 +106,7 @@ export default async function BusinessDashboard() {
                                 <CreditCard size={16} />
                             </div>
                             <div>
-                                <div className="text-lg font-bold">₺0</div>
+                                <div className="text-lg font-bold">₺{stats?.paid || 0}</div>
                                 <div className="text-[10px] text-zinc-500">Ödenen Ödül</div>
                             </div>
                         </CardContent>
@@ -100,20 +114,20 @@ export default async function BusinessDashboard() {
                 </div>
             </div>
 
-            {/* 2. KAMPANYA LİSTESİ (Dynamic Data) */}
+            {/* 2. KAMPANYA LİSTESİ */}
             <div className="px-2">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-lg">Kampanyalarım</h3>
                     <Link href="/business/campaigns" className="text-xs text-blue-600 font-medium">Tümünü Gör</Link>
                 </div>
 
-                {stats?.campaigns.length === 0 ? (
+                {data?.campaigns.length === 0 ? (
                     <div className="text-center py-8 border-2 border-dashed border-zinc-200 rounded-xl">
                         <p className="text-zinc-400 text-sm">Henüz kampanya yok.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {stats?.campaigns.slice(0, 3).map((camp) => (
+                        {data?.campaigns.slice(0, 3).map((camp) => (
                             <Link href={`/business/campaigns/${camp.id}`} key={camp.id}>
                                 <div className="p-4 rounded-xl border border-zinc-100 bg-white shadow-sm flex justify-between items-center active:bg-zinc-50 transition-colors dark:bg-zinc-900 dark:border-zinc-800">
                                     <div>
@@ -130,7 +144,7 @@ export default async function BusinessDashboard() {
                         ))}
                     </div>
                 )}
+            </div>
         </div>
-        </div >
     );
 }
