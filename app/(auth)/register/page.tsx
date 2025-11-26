@@ -33,6 +33,7 @@ const businessSchema = z.object({
     taxId: z.string().regex(/^[0-9]{10}$/, "Vergi Kimlik Numarası 10 haneli olmalıdır."),
     city: z.string().min(2, "İl seçiniz."),
     district: z.string().min(2, "İlçe seçiniz."),
+    address: z.string().min(10, "Lütfen açık adresinizi giriniz."),
     referralCode: z.string().optional(),
     consent: z.boolean().refine((val) => val === true, {
         message: "Aydınlatma metnini onaylamalısınız."
@@ -54,6 +55,7 @@ export default function RegisterPage() {
         taxId: "",
         city: "",
         district: "",
+        address: "",
         referralCode: "",
         consent: false
     });
@@ -111,6 +113,7 @@ export default function RegisterPage() {
                 taxId: formData.taxId,
                 city: formData.city,
                 district: formData.district,
+                address: formData.address,
                 referralCode: formData.referralCode,
                 consent: formData.consent,
                 password: formData.password
@@ -293,6 +296,7 @@ export default function RegisterPage() {
                                     <Input name="taxId" placeholder="Vergi Kimlik No (10 hane)" maxLength={10} className={`h-12 ${errors.taxId ? "border-red-500" : ""}`} value={formData.taxId} onChange={handleInputChange} />
                                     {errors.taxId && <p className="text-xs text-red-500">{errors.taxId}</p>}
                                 </div>
+                                {/* İL VE İLÇE */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <Select onValueChange={(val) => handleSelectChange("city", val)}>
@@ -320,6 +324,17 @@ export default function RegisterPage() {
                                         </Select>
                                         {errors.district && <p className="text-xs text-red-500">{errors.district}</p>}
                                     </div>
+                                </div>
+                                {/* TAM ADRES */}
+                                <div className="space-y-1">
+                                    <Input
+                                        name="address"
+                                        placeholder="Mahalle, Sokak, Kapı No (Tam Adres)"
+                                        className={`h-12 ${errors.address ? "border-red-500" : ""}`}
+                                        value={formData.address}
+                                        onChange={handleInputChange}
+                                    />
+                                    {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <Input name="referralCode" placeholder="Referans Kodu (Opsiyonel)" className="h-12" value={formData.referralCode} onChange={handleInputChange} />
