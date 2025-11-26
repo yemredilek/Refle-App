@@ -15,7 +15,8 @@ import { ArrowLeft, CheckCircle2, AlertCircle, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { z } from "zod";
-import { TURKEY_LOCATIONS } from "@/constants/locations"; // Lokasyon datası
+import { TURKEY_LOCATIONS } from "@/constants/locations";
+import { toast } from "sonner";
 
 // --- VALIDASYON ŞEMALARI ---
 const userSchema = z.object({
@@ -144,7 +145,7 @@ export default function RegisterPage() {
         });
 
         if (error) {
-            alert("Kayıt Hatası: " + error.message);
+            toast.error("Kayıt Hatası: " + error.message);
             setLoading(false);
             return;
         }
@@ -162,7 +163,7 @@ export default function RegisterPage() {
         });
 
         if (error) {
-            alert("Doğrulama Hatası: " + error.message);
+            toast.error("Doğrulama Hatası: " + error.message);
             setLoading(false);
             return;
         }

@@ -8,6 +8,7 @@ import { ArrowRight, Building2, User, Lock, Phone, AlertCircle } from "lucide-re
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
+import { toast } from "sonner";
 
 // --- ŞEMA ---
 const loginSchema = z.object({
@@ -58,10 +59,12 @@ export default function LoginPage() {
         });
 
         if (error) {
-            setAuthError("Telefon veya şifre hatalı.");
+            toast.error("Giriş Başarısız: Telefon veya şifre hatalı.");
             setLoading(false);
             return;
         }
+
+        toast.success("Giriş başarılı!");
 
         if (activeTab === "business") {
             router.push("/business/dashboard");
